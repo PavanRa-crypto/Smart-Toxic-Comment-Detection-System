@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+    <title>Smart Toxic Comment Detector</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loader"></div>
+        <p>Analyzing comment with BERT/TFIDF...</p>
+    </div>
+
+    <div class="header-banner">
+        Smart Toxic Comment Detection System
+        <button id="mode-toggle-btn" class="mode-toggle-btn" aria-label="Toggle Dark/Light Mode">
+            <span class="sun">☀️</span><span class="moon">🌑</span>
+        </button>
+    </div>
+    
+    <div class="container">
+        
+        <form action="/" method="post" class="input-form" id="prediction-form">
+            <label for="sentence-input" class="input-label">Enter a sentence</label>
+            <textarea id="sentence-input" name="comment" 
+                      placeholder="Type your comment here..."
+                      required>{{ results_data.comment or '' }}</textarea>
+            
+            <div id="char-count" class="char-count">0 / 512 characters</div>
+
+            <div class="model-select">
+                <label>Select Model:</label>
+                
+                <label class="radio-custom-label">
+                    <input type="radio" name="model" value="tfidf" 
+                           {% if results_data.model == "tfidf" or not results_data %}checked{% endif %}> 
+                    <span class="radio-custom-visual">TFIDF</span>
+                </label>
+                <label class="radio-custom-label">
+                    <input type="radio" name="model" value="bert" 
+                           {% if results_data.model == "bert" %}checked{% endif %}> 
+                    <span class="radio-custom-visual">BERT</span>
+                </label>
+            </div>
+            
+            <button type="submit" class="submit-btn">ANALYZE</button>
+        </form>
+
+        {% if results_data %}
+            <div class="results-grid-single">
+                
+                <div class="summary-banner {{ results_data.summary_class }}">
+                    Status: {{ results_data.summary_message }}
+                </div>
+                
+                <div class="toxicity-table">
+                    <h3 class="table-title">Predicted Toxicity</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Prediction</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in results_data.scores %}
+                            <tr data-score="{{ item.score }}">
+                                <td class="category">{{ item.label }}</td>
+                                <td class="prediction-cell">
+                                    <div class="score-bar-container">
+                                        <div class="score-bar {{ item.color_class }}"></div>
+                                    </div>
+                                    <span class="score-percent {{ item.color_class }}">{{ item.score }}%</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const body = document.body;
+            const toggleBtn = document.getElementById('mode-toggle-btn');
+            const form = document.getElementById('prediction-form');
+            const loadingOverlay = document.getElementById('loading-overlay');
+            const textarea = document.getElementById('sentence-input');
+            const charCount = document.getElementById('char-count');
+            const MAX_LENGTH = 512;
+
+            const storedTheme = localStorage.getItem('theme');
+            if (storedTheme === 'light') {
+                body.classList.add('light-mode');
+            } else {
+                body.classList.remove('light-mode');
+            }
+
+            toggleBtn.addEventListener('click', () => {
+                const isLight = body.classList.toggle('light-mode');
+                localStorage.setItem('theme', isLight ? 'light' : 'dark');
+            });
+
+            form.addEventListener('submit', () => {
+                if (textarea.value.trim() === '') return;
+                loadingOverlay.style.display = 'flex';
+            });
+
+            const updateCharCount = () => {
+                const length = textarea.value.length;
+                charCount.textContent = `${length} / ${MAX_LENGTH} characters`;
+                charCount.classList.toggle('exceeded', length > MAX_LENGTH);
+            };
+
+            updateCharCount();
+            textarea.addEventListener('input', updateCharCount);
+
+            const scoreRows = document.querySelectorAll('.results-grid-single tbody tr');
+            scoreRows.forEach(row => {
+                const rawScore = row.getAttribute('data-score');
+                const bar = row.querySelector('.score-bar');
+                const scoreValue = parseFloat(rawScore?.trim() || '0');
+
+                if (bar && !isNaN(scoreValue)) {
+                    bar.style.width = Math.min(scoreValue, 100) + '%';
+                } else if (bar) {
+                    bar.style.width = '0%';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
