@@ -1,9 +1,26 @@
+# Python cache
 __pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
 venv/
+
+# Jupyter
 .ipynb_checkpoints/
+
+# OS files
 .DS_Store
 Thumbs.db
-models/*.bin
-models/*.pt
-models/*.h5
+
+# Models (exclude ALL ML models)
+models/
+
+# Large datasets
+train.csv
+
+# Results / outputs
 results/
+
+# VS Code settings (optional)
+.vscode/
